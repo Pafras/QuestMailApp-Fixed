@@ -57,6 +57,8 @@ struct ActivityPlan: Identifiable, Hashable {
     let organizer: String
     let interestedCount: Int
     let rsvpStatuses: [RSVPResponse]
+    var activity: String = ""
+    var place: String = ""
 }
 
 struct RSVPResponse: Identifiable, Hashable {
