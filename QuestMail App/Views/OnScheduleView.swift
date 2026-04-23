@@ -12,6 +12,10 @@ struct OnScheduleView: View {
     let quests: [ScheduledQuest]
     @Binding var selectedQuest: ScheduledQuest?
     @Binding var rsvpedQuestIDs: Set<UUID>
+    
+    // onRSVPChange: passed FROM MainAppView
+    // questID = which quest, isJoining = true when RSVPing, false when cancelling
+    var onRSVPChange: (UUID, Bool) -> Void
 
     // MARK: Cancel Confirmation State
     @State private var questToCancel: ScheduledQuest?
@@ -79,8 +83,9 @@ struct OnScheduleView: View {
     }
 
     private func confirmRSVP(_ quest: ScheduledQuest) {
-        _ = withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
             rsvpedQuestIDs.insert(quest.id)
+            onRSVPChange(quest.id, true)
         }
     }
 
@@ -141,6 +146,7 @@ struct OnScheduleView: View {
                         Button {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                 rsvpedQuestIDs.remove(quest.id)
+                                onRSVPChange(quest.id, false)
                                 showCancelConfirmation = false
                                 questToCancel = nil
                             }
@@ -376,6 +382,7 @@ struct QuestRow: View {
     OnScheduleView(
         quests: SampleData.scheduledQuests,
         selectedQuest: .constant(nil),
-        rsvpedQuestIDs: .constant([])
+        rsvpedQuestIDs: .constant([]),
+        onRSVPChange: { _, _ in }
     )
 }

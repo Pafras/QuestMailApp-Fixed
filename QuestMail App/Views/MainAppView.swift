@@ -49,6 +49,8 @@ enum QuestTab: String, CaseIterable {
 // MARK: - MainAppView
 struct MainAppView: View {
     
+    // MainAppView owns the array so it can mutate individual items
+    @State private var scheduledQuests: [ScheduledQuest] = SampleData.scheduledQuests
     // MARK: - Properties
     @State private var selectedTab: QuestTab = .onSchedule
     @State private var showCategoryBanner: Bool = true
@@ -107,9 +109,14 @@ struct MainAppView: View {
                     switch selectedTab {
                     case .onSchedule:
                         OnScheduleView(
-                            quests: SampleData.scheduledQuests,
+                            quests: scheduledQuests,
                             selectedQuest: $selectedQuest,
-                            rsvpedQuestIDs: $rsvpedQuestIDs
+                            rsvpedQuestIDs: $rsvpedQuestIDs,
+                            // wires the same handleRSVPChange function used by the detail view
+                            // so both swipe and detail view update the same array
+                            onRSVPChange: { questID, isJoining in
+                                handleRSVPChange(questID: questID, isJoining: isJoining)
+                            }
                         )
                     case .desires:
                         DesiresView(
@@ -159,6 +166,17 @@ struct MainAppView: View {
                     selectedPlan = nil
                     showComposeCard = true
                 }
+            }
+            // questItem = the ScheduledQuest that was tapped in OnScheduleView
+            // selected via selectedQuest @State in MainAppView, set inside SwipeableQuestRow's onTapGesture
+            .navigationDestination(item: $selectedQuest) { questItem in
+                ScheduledQuestDetailView(
+                    onRSVPChange: { questID, isJoining in
+                        handleRSVPChange(questID: questID, isJoining: isJoining)
+                    },
+                    questData: questItem,
+                    rsvpedQuestIDs: $rsvpedQuestIDs
+                )
             }
         }
     }
@@ -270,6 +288,17 @@ struct MainAppView: View {
         .padding(.horizontal)
         .padding(.vertical, 4)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedTab)
+    }
+    
+    // finds the quest by id in the @State array and increments or decrements rsvpCount
+    // called FROM ScheduledQuestDetailView via the onRSVPChange closure
+    private func handleRSVPChange(questID: UUID, isJoining: Bool) {
+        guard let questIndex = scheduledQuests.firstIndex(where: { $0.id == questID }) else { return }
+        if isJoining {
+            scheduledQuests[questIndex].rsvpCount += 1
+        } else {
+            scheduledQuests[questIndex].rsvpCount -= 1
+        }
     }
 }
 
