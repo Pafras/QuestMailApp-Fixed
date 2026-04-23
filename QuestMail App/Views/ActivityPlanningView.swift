@@ -27,10 +27,13 @@ struct ActivityPlanningView: View {
 
                 // MARK: Plan Rows
                 ForEach(plans) { plan in
-                    ActivityPlanRow(plan: plan)
-                        .onTapGesture {
-                            selectedPlan = plan
-                        }
+                    Button {
+                        selectedPlan = plan
+                    } label: {
+                        ActivityPlanRow(plan: plan)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                     Divider()
                         .padding(.horizontal)
                 }
@@ -56,9 +59,6 @@ struct ActivityPlanningView: View {
 struct ActivityPlanRow: View {
     let plan: ActivityPlan
 
-    // MARK: Properties
-    private let detailTags = ["Who", "Time", "Spot"]
-
     // MARK: Body
     var body: some View {
         HStack {
@@ -72,22 +72,6 @@ struct ActivityPlanRow: View {
                 Text("by \(plan.organizer)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
-                // MARK: Detail Tags (Who, Time, Spot)
-                HStack(spacing: 8) {
-                    ForEach(detailTags, id: \.self) { tag in
-                        Text(tag)
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(Color.mint.opacity(0.15))
-                            )
-                    }
-                }
-                .padding(.top, 2)
             }
 
             Spacer()
