@@ -29,7 +29,11 @@ struct ScheduledQuest: Identifiable, Hashable {
     let section: QuestSection
     let participantType: ParticipantType
     let maxParticipants: Int?
-    let rsvpCount: Int
+    var rsvpCount: Int
+    // LATER: these will be passed from ComposeActivityCard when planning → scheduled is wired up
+    let activityDetail: String      // maps to ACTIVITY field in ComposeActivityCard
+    let reward: String              // maps to WHAT YOU'LL WALK AWAY WITH
+    let organizer: String           // maps to WHO / Hosted by
 }
 
 // MARK: - Desires Models
@@ -71,11 +75,71 @@ struct SampleData {
 
     // MARK: Scheduled Quests Array
     static let scheduledQuests: [ScheduledQuest] = [
-        ScheduledQuest(title: "Finesse your first moves", venue: "Apple Dance Academy - Agung", date: "19/04", time: "6 pm", iconName: "figure.dance", section: .thisWeek, participantType: .open, maxParticipants: nil, rsvpCount: 5),
-        ScheduledQuest(title: "Futsal", venue: "Apple Futsal Academy - Arjuna Court", date: "16/04", time: "7 pm", iconName: "sportscourt.fill", section: .thisWeek, participantType: .limited, maxParticipants: 14, rsvpCount: 10),
-        ScheduledQuest(title: "Bouldering", venue: "Apple Bouldering Academy - Canggu", date: "18/04", time: "6 pm", iconName: "figure.climbing", section: .thisWeek, participantType: .limited, maxParticipants: 8, rsvpCount: 6),
-        ScheduledQuest(title: "Pafras's Birthday", venue: "Pafras - Filadelfia Sushi Kerobokan", date: "14/20", time: "6 pm", iconName: "gift.fill", section: .nextWeek, participantType: .open, maxParticipants: nil, rsvpCount: 12),
-        ScheduledQuest(title: "UCL Final", venue: "Pafras - Sports Bar", date: "14/20", time: "6 pm", iconName: "soccerball", section: .nextWeek, participantType: .limited, maxParticipants: 20, rsvpCount: 18),
+        ScheduledQuest(
+            title: "Finesse your first moves",
+            venue: "Apple Dance Academy - Agung",
+            date: "19/04", time: "6 pm",
+            iconName: "figure.dance",
+            section: .thisWeek,
+            participantType: .open,
+            maxParticipants: nil,
+            rsvpCount: 5,
+            activityDetail: "A beginner-friendly Latin dance session covering basic salsa footwork and partner movement.",
+            reward: "You'll walk away knowing your first 3 salsa moves and feeling less awkward on the dancefloor.",
+            organizer: "Pafras"
+        ),
+        ScheduledQuest(
+            title: "Futsal",
+            venue: "Apple Futsal Academy - Arjuna Court",
+            date: "16/04", time: "7 pm",
+            iconName: "sportscourt.fill",
+            section: .thisWeek,
+            participantType: .limited,
+            maxParticipants: 14,
+            rsvpCount: 10,
+            activityDetail: "Casual 5v5 futsal. Balanced teams will be sorted on the day.",
+            reward: "A solid sweat, bragging rights, and maybe a post-game drink.",
+            organizer: "Agung"
+        ),
+        ScheduledQuest(
+            title: "Bouldering",
+            venue: "Apple Bouldering Academy - Canggu",
+            date: "18/04", time: "6 pm",
+            iconName: "figure.climbing",
+            section: .thisWeek,
+            participantType: .limited,
+            maxParticipants: 8,
+            rsvpCount: 6,
+            activityDetail: "Indoor bouldering for all levels. Instructors on hand for first-timers.",
+            reward: "Upper body gains and a new hobby that will haunt your weekend plans.",
+            organizer: "Pafras"
+        ),
+        ScheduledQuest(
+            title: "Pafras's Birthday",
+            venue: "Filadelfia Sushi Kerobokan",
+            date: "14/20", time: "6 pm",
+            iconName: "gift.fill",
+            section: .nextWeek,
+            participantType: .open,
+            maxParticipants: nil,
+            rsvpCount: 12,
+            activityDetail: "Dinner to celebrate Pafras turning another year older and somehow wiser.",
+            reward: "Good food, good people, and a free excuse to skip the gym.",
+            organizer: "Pafras"
+        ),
+        ScheduledQuest(
+            title: "UCL Final",
+            venue: "Sports Bar - Seminyak",
+            date: "14/20", time: "6 pm",
+            iconName: "soccerball",
+            section: .nextWeek,
+            participantType: .limited,
+            maxParticipants: 20,
+            rsvpCount: 18,
+            activityDetail: "Watching the UEFA Champions League Final together. Jerseys encouraged.",
+            reward: "Shared suffering or shared glory, depending on who makes the final.",
+            organizer: "Agung"
+        ),
     ]
     
     // MARK: Desire Activities Array
