@@ -12,12 +12,14 @@ enum QuestTab: String, CaseIterable {
     case onSchedule = "On Schedule"
     case desires = "Desires"
     case activityPlanning = "Activity Planning"
+    case history = "History"
     
     var icon: String {
         switch self {
         case .onSchedule: return "calendar.badge.clock"
         case .desires: return "heart.fill"
         case .activityPlanning: return "list.clipboard.fill"
+        case .history: return "clock.arrow.circlepath"
         }
     }
     
@@ -26,6 +28,7 @@ enum QuestTab: String, CaseIterable {
         case .onSchedule: return .blue
         case .desires: return .orange
         case .activityPlanning: return .green
+        case .history: return .purple
         }
     }
     
@@ -34,6 +37,7 @@ enum QuestTab: String, CaseIterable {
         case .onSchedule: return "Scheduled Quests"
         case .desires: return "Desires & Wishes"
         case .activityPlanning: return "Activity Planning"
+        case .history: return "My Quest History"
         }
     }
     
@@ -42,6 +46,7 @@ enum QuestTab: String, CaseIterable {
         case .onSchedule: return "Keep track of your upcoming quests, including scheduled events and meetups."
         case .desires: return "Browse and upvote activities you'd love to try, bundled by popularity."
         case .activityPlanning: return "Organize and plan new activities with your group, from idea to execution."
+        case .history: return "Quests you've RSVPed to, upcoming and completed."
         }
     }
 }
@@ -81,7 +86,7 @@ struct MainAppView: View {
                 // MARK: Navigation Header
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Quest Board")
-                    .font(.largeTitle)
+                        .font(.largeTitle)
                         .fontWeight(.bold)
                     Text("The Bridge Tavern")
                         .font(.subheadline)
@@ -135,6 +140,13 @@ struct MainAppView: View {
                         ActivityPlanningView(
                             plans: activityPlans,
                             selectedPlan: $selectedPlan
+                        )
+                    case .history:
+                        // passes the full quest array + the set of RSVPed IDs
+                        // HistoryView will filter internally to find the ones the user joined
+                        HistoryView(
+                            questsData: scheduledQuests,         // source: MainAppView's @State array
+                            rsvpedQuestIDs: rsvpedQuestIDs       // source: MainAppView's @State set — NOT a binding, read-only here
                         )
                     }
                 }
