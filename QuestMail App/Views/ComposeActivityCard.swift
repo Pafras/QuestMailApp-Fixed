@@ -7,34 +7,83 @@
 
 import SwiftUI
 
+// MARK: - Compose Mode
+enum ComposeMode {
+    case compose      // From Desires tab — only title required
+    case editPlan     // From Activity Planning tab — all fields required
+}
+
 struct ComposeActivityCard: View {
     
     // MARK: - Theme
-    private let accentTeal = Color(red: 0.24, green: 0.46, blue: 0.38)
-    private let lightTeal = Color(red: 0.24, green: 0.46, blue: 0.38).opacity(0.08)
+    private var accentTeal: Color {
+        mode == .compose
+            ? Color(red: 0.24, green: 0.46, blue: 0.38)
+            : Color(red: 0.13, green: 0.54, blue: 0.13)
+    }
+    private var lightTeal: Color {
+        accentTeal.opacity(0.08)
+    }
     
     // MARK: - Properties
     @Environment(\.dismiss) private var dismiss
-    var onSubmitDismiss: (() -> Void)?
+    let mode: ComposeMode
+    var onSubmit: ((ActivityPlan) -> Void)?
     
-    @State private var questTitle: String = ""
-    @State private var activity: String = ""
+    @State private var questTitle: String
+    @State private var activity: String
     @State private var reward: String = ""
     @State private var hostedBy: String = ""
+    @State private var place: String = ""
     @State private var selectedDate = Date()
-    @State private var selectedTime = Date()
+    @State private var selectedTime: Date = {
+        let cal = Calendar.current
+        var c = cal.dateComponents([.year, .month, .day], from: Date())
+        c.hour = 0
+        c.minute = 0
+        return cal.date(from: c) ?? Date()
+    }()
     @State private var hasParticipantLimit = false
     @State private var participantCount: Int = 2
     @State private var showSuccess = false
     @State private var showTimePicker = false
     @State private var datePickerId = UUID()
     
+    init(mode: ComposeMode = .compose, initialTitle: String = "", initialActivity: String = "", onSubmit: ((ActivityPlan) -> Void)? = nil) {
+        self.mode = mode
+        self.onSubmit = onSubmit
+        _questTitle = State(initialValue: initialTitle)
+        _activity = State(initialValue: initialActivity)
+    }
+    
     // MARK: - Computed
     private var isFormComplete: Bool {
-        !questTitle.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !activity.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !reward.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !hostedBy.trimmingCharacters(in: .whitespaces).isEmpty
+        switch mode {
+        case .compose:
+            // From Desires: only title is required
+            return !questTitle.trimmingCharacters(in: .whitespaces).isEmpty
+        case .editPlan:
+            // From Activity Planning: all fields required
+            return !questTitle.trimmingCharacters(in: .whitespaces).isEmpty &&
+                   !activity.trimmingCharacters(in: .whitespaces).isEmpty &&
+                   !reward.trimmingCharacters(in: .whitespaces).isEmpty &&
+                   !hostedBy.trimmingCharacters(in: .whitespaces).isEmpty &&
+                   !place.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+    }
+    
+    private var buttonTitle: String {
+        mode == .compose ? "Submit Quest" : "Move to Schedule"
+    }
+    
+    private var successTitle: String {
+        mode == .compose ? "Quest Submitted!" : "Moved to Schedule!"
+    }
+    
+    private var successMessage: String {
+        mode == .compose
+            ? "Your activity card has been\nsuccessfully added."
+            : "Your activity is now\non the schedule."
     }
     
     // MARK: - Body
@@ -81,6 +130,30 @@ struct ComposeActivityCard: View {
                             isMultiline: true
                         )
                         
+                        // MARK: Place Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("PLACE")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(accentTeal.opacity(0.7))
+                                .textCase(.uppercase)
+                            
+                            HStack(spacing: 10) {
+                                Image(systemName: "mappin.and.ellipse")
+                                    .foregroundStyle(accentTeal)
+                                TextField("Paste location link (e.g. Google Maps)", text: $place)
+                                    .keyboardType(.URL)
+                                    .textContentType(.URL)
+                                    .autocapitalization(.none)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(.systemGray6))
+                            )
+                        }
+                        
                         // MARK: Participants
                         participantRow
                         
@@ -102,7 +175,7 @@ struct ComposeActivityCard: View {
                         showSuccess = true
                     }
                 } label: {
-                    Text("Submit Quest")
+                    Text(buttonTitle)
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
@@ -139,6 +212,25 @@ struct ComposeActivityCard: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Submit & Dismiss
+    private func submitAndDismiss() {
+        let newPlan = ActivityPlan(
+            title: questTitle,
+            organizer: hostedBy,
+            interestedCount: 0,
+            rsvpStatuses: [],
+            activity: activity,
+            place: place,
+            reward: reward,
+            date: selectedDate,
+            time: selectedTime,
+            participantType: hasParticipantLimit ? .limited : .open,
+            maxParticipants: hasParticipantLimit ? participantCount : nil
+        )
+        onSubmit?(newPlan)
+        dismiss()
     }
     
     // MARK: - Date Row
@@ -314,8 +406,7 @@ struct ComposeActivityCard: View {
                         showSuccess = false
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        onSubmitDismiss?()
-                        dismiss()
+                        submitAndDismiss()
                     }
                 }
             
@@ -325,12 +416,12 @@ struct ComposeActivityCard: View {
                     .foregroundStyle(accentTeal)
                     .symbolEffect(.bounce, value: showSuccess)
                 
-                Text("Quest Submitted!")
+                Text(successTitle)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundStyle(accentTeal)
                 
-                Text("Your activity card has been\nsuccessfully added.")
+                Text(successMessage)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -340,8 +431,7 @@ struct ComposeActivityCard: View {
                         showSuccess = false
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        onSubmitDismiss?()
-                        dismiss()
+                        submitAndDismiss()
                     }
                 } label: {
                     Text("Done")
@@ -500,6 +590,6 @@ struct TimePicker15Min: UIViewRepresentable {
 // MARK: - Preview
 #Preview {
     NavigationStack {
-        ComposeActivityCard()
+        ComposeActivityCard(initialTitle: "", initialActivity: "")
     }
 }

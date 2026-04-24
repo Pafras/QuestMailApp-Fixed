@@ -91,7 +91,7 @@ struct ScheduledQuestDetailView: View {
                 // MARK: Logistics (Time, Place, Host)
                 // source: questData.time, questData.venue, questData.organizer
                 VStack(spacing: 0) {
-                    missingDetailRow(icon: "clock.fill",         color: .blue,   label: "Time",  value: questData.time)
+                    missingDetailRow(icon: "clock.fill",         color: .blue,   label: "Time",  value: questData.formattedTime)
                     Divider().padding(.leading, 48)
                     missingDetailRow(icon: "mappin.circle.fill",  color: .red,    label: "Place", value: questData.venue)
                     Divider().padding(.leading, 48)

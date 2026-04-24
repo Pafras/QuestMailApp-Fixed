@@ -9,15 +9,16 @@ import SwiftUI
 
 // MARK: - DesiresView
 struct DesiresView: View {
-    @State var activities: [DesireActivity]
+    @Binding var activities: [DesireActivity]
     @Binding var selectedActivity: DesireActivity?
-    var onComposeQuest: () -> Void
+    var onComposeQuest: (UUID) -> Void
     
     // MARK: State
     @State private var votedIDs: Set<UUID> = []
     @State private var showAddDesire = false
     @State private var showAddSuccess = false
     @State private var animatingVoteID: UUID?
+    @Namespace private var cardAnimation
     
     // MARK: Computed - sorted by votes
     private var sortedActivities: [DesireActivity] {
@@ -67,8 +68,9 @@ struct DesiresView: View {
                             hasVoted: votedIDs.contains(activity.id),
                             isAnimating: animatingVoteID == activity.id,
                             onVote: { toggleVote(for: activity.id) },
-                            onCompose: onComposeQuest
+                            onCompose: { onComposeQuest(activity.id) }
                         )
+                        .matchedGeometryEffect(id: activity.id, in: cardAnimation)
                         .id(activity.id)
                         .onTapGesture {
                             selectedActivity = activity
@@ -92,6 +94,7 @@ struct DesiresView: View {
                                 isAnimating: animatingVoteID == activity.id,
                                 onVote: { toggleVote(for: activity.id) }
                             )
+                            .matchedGeometryEffect(id: activity.id, in: cardAnimation)
                             .id(activity.id)
                             .onTapGesture {
                                 selectedActivity = activity
@@ -110,7 +113,7 @@ struct DesiresView: View {
             Button {
                 showAddDesire = true
             } label: {
-                Image(systemName: "square.and.pencil")
+                Image(systemName: "plus")
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
@@ -264,7 +267,7 @@ struct FeaturedDesireCard: View {
                 Button {
                     onCompose()
                 } label: {
-                    Image(systemName: "square.and.pencil")
+                    Image(systemName: "pencil")
                         .font(.subheadline)
                         .foregroundStyle(.orange)
                         .padding(8)
@@ -465,8 +468,8 @@ struct AddDesireSheet: View {
 // MARK: - Preview
 #Preview {
     DesiresView(
-        activities: SampleData.desireActivities,
+        activities: .constant(SampleData.desireActivities),
         selectedActivity: .constant(nil),
-        onComposeQuest: {}
+        onComposeQuest: { _ in }
     )
 }
