@@ -54,8 +54,13 @@ enum QuestTab: String, CaseIterable {
 // MARK: - MainAppView
 struct MainAppView: View {
     
+    // stores the wantCount from the desire that triggered compose
+    // passed into the ActivityPlan as interestedCount when submitted
+    @State private var composingDesireWantCount: Int = 0
+    
     // MainAppView owns the array so it can mutate individual items
     @State private var scheduledQuests: [ScheduledQuest] = SampleData.scheduledQuests
+    
     // MARK: - Properties
     @State private var selectedTab: QuestTab = .onSchedule
     @State private var showCategoryBanner: Bool = true
@@ -131,6 +136,11 @@ struct MainAppView: View {
                             onComposeQuest: { desireID in
                                 composeMode = .compose
                                 composingDesireID = desireID
+                                // find the desire by id and store its wantCount
+                                    // so it can become interestedCount in the ActivityPlan
+                                    if let desireItem = desireActivities.first(where: { eachDesire in eachDesire.id == desireID }) {
+                                        composingDesireWantCount = desireItem.wantCount
+                                    }
                                 composeInitialTitle = ""
                                 composeInitialActivity = ""
                                 showComposeCard = true
@@ -161,8 +171,9 @@ struct MainAppView: View {
                     onSubmit: { plan in
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
                             if composeMode == .compose {
-                                // From Desires: add new plan, remove desire, go to Activity Planning
-                                activityPlans.append(plan)
+                                var updatedPlanItem = plan           // make a mutable copy of the plan
+                                    updatedPlanItem.interestedCount = composingDesireWantCount  // inject the desire's wantCount
+                                    activityPlans.append(updatedPlanItem)   // append the updated copy, not the original
                                 if let desireID = composingDesireID {
                                     desireActivities.removeAll { $0.id == desireID }
                                     composingDesireID = nil

@@ -69,7 +69,7 @@ struct ActivityPlanRow: View {
                     .fontWeight(.semibold)
 
                 // MARK: Organizer
-                Text("by \(plan.organizer)")
+                Text("by \(plan.organizer) · \(plan.interestedCount) interested")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
