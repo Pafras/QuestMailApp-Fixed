@@ -7,12 +7,61 @@
 
 import Foundation
 
-// MARK: - On Schedule Models
+// MARK: - Schedule Section (Dynamic, Date-Based)
 
-enum QuestSection: String, CaseIterable {
-    case thisWeek = "This Week"
-    case nextWeek = "Next Week"
+enum ScheduleSection: Hashable {
+    case thisWeek
+    case nextWeek
+    case month(year: Int, month: Int)
+    
+    var title: String {
+        switch self {
+        case .thisWeek: return "This Week"
+        case .nextWeek: return "Next Week"
+        case .month(let year, let month):
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMMM yyyy"
+            var components = DateComponents()
+            components.year = year
+            components.month = month
+            components.day = 1
+            if let date = Calendar.current.date(from: components) {
+                return formatter.string(from: date)
+            }
+            return ""
+        }
+    }
+    
+    var sortOrder: Int {
+        switch self {
+        case .thisWeek: return 0
+        case .nextWeek: return 1
+        case .month(let year, let month): return 2 + year * 12 + month
+        }
+    }
+    
+    static func from(date: Date) -> ScheduleSection {
+        let cal = Calendar.current
+        let now = Date()
+        guard let thisWeekInterval = cal.dateInterval(of: .weekOfYear, for: now) else {
+            let c = cal.dateComponents([.year, .month], from: date)
+            return .month(year: c.year ?? 2026, month: c.month ?? 1)
+        }
+        let startOfNextWeek = cal.date(byAdding: .weekOfYear, value: 1, to: thisWeekInterval.start)!
+        let endOfNextWeek = cal.date(byAdding: .weekOfYear, value: 1, to: startOfNextWeek)!
+        
+        if date < startOfNextWeek {
+            return .thisWeek
+        } else if date < endOfNextWeek {
+            return .nextWeek
+        } else {
+            let c = cal.dateComponents([.year, .month], from: date)
+            return .month(year: c.year ?? 2026, month: c.month ?? 1)
+        }
+    }
 }
+
+// MARK: - On Schedule Models
 
 enum ParticipantType: String, Hashable {
     case open = "Open"
@@ -23,17 +72,27 @@ struct ScheduledQuest: Identifiable, Hashable {
     let id = UUID()
     let title: String
     let venue: String
-    let date: String
-    let time: String
+    let scheduledDate: Date
     let iconName: String
-    let section: QuestSection
     let participantType: ParticipantType
     let maxParticipants: Int?
     var rsvpCount: Int
-    // LATER: these will be passed from ComposeActivityCard when planning → scheduled is wired up
-    let activityDetail: String      // maps to ACTIVITY field in ComposeActivityCard
-    let reward: String              // maps to WHAT YOU'LL WALK AWAY WITH
-    let organizer: String           // maps to WHO / Hosted by
+    let activityDetail: String
+    let reward: String
+    let organizer: String
+    
+    // MARK: Formatted Display
+    var formattedDate: String {
+        let f = DateFormatter()
+        f.dateFormat = "dd/MM"
+        return f.string(from: scheduledDate)
+    }
+    
+    var formattedTime: String {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f.string(from: scheduledDate)
+    }
 }
 
 // MARK: - Desires Models
@@ -63,6 +122,11 @@ struct ActivityPlan: Identifiable, Hashable {
     let rsvpStatuses: [RSVPResponse]
     var activity: String = ""
     var place: String = ""
+    var reward: String = ""
+    var date: Date = Date()
+    var time: Date = Date()
+    var participantType: ParticipantType = .open
+    var maxParticipants: Int? = nil
 }
 
 struct RSVPResponse: Identifiable, Hashable {
@@ -71,18 +135,28 @@ struct RSVPResponse: Identifiable, Hashable {
     let count: Int
 }
 
-// MARK: - Sample Data (Array of Instances)
+// MARK: - Sample Data
 
 struct SampleData {
+    
+    // MARK: Date Helper
+    private static func makeDate(day: Int, month: Int, year: Int = 2026, hour: Int = 18, minute: Int = 0) -> Date {
+        var c = DateComponents()
+        c.year = year
+        c.month = month
+        c.day = day
+        c.hour = hour
+        c.minute = minute
+        return Calendar.current.date(from: c) ?? Date()
+    }
 
     // MARK: Scheduled Quests Array
     static let scheduledQuests: [ScheduledQuest] = [
         ScheduledQuest(
             title: "Finesse your first moves",
             venue: "Apple Dance Academy - Agung",
-            date: "19/04", time: "6 pm",
+            scheduledDate: makeDate(day: 24, month: 4, hour: 18, minute: 0),
             iconName: "figure.dance",
-            section: .thisWeek,
             participantType: .open,
             maxParticipants: nil,
             rsvpCount: 5,
@@ -93,9 +167,8 @@ struct SampleData {
         ScheduledQuest(
             title: "Futsal",
             venue: "Apple Futsal Academy - Arjuna Court",
-            date: "16/04", time: "7 pm",
+            scheduledDate: makeDate(day: 25, month: 4, hour: 19, minute: 15),
             iconName: "sportscourt.fill",
-            section: .thisWeek,
             participantType: .limited,
             maxParticipants: 14,
             rsvpCount: 10,
@@ -106,9 +179,8 @@ struct SampleData {
         ScheduledQuest(
             title: "Bouldering",
             venue: "Apple Bouldering Academy - Canggu",
-            date: "18/04", time: "6 pm",
+            scheduledDate: makeDate(day: 26, month: 4, hour: 18, minute: 30),
             iconName: "figure.climbing",
-            section: .thisWeek,
             participantType: .limited,
             maxParticipants: 8,
             rsvpCount: 6,
@@ -119,9 +191,8 @@ struct SampleData {
         ScheduledQuest(
             title: "Pafras's Birthday",
             venue: "Filadelfia Sushi Kerobokan",
-            date: "14/20", time: "6 pm",
+            scheduledDate: makeDate(day: 30, month: 4, hour: 18, minute: 0),
             iconName: "gift.fill",
-            section: .nextWeek,
             participantType: .open,
             maxParticipants: nil,
             rsvpCount: 12,
@@ -132,9 +203,8 @@ struct SampleData {
         ScheduledQuest(
             title: "UCL Final",
             venue: "Sports Bar - Seminyak",
-            date: "14/20", time: "6 pm",
+            scheduledDate: makeDate(day: 10, month: 5, hour: 19, minute: 45),
             iconName: "soccerball",
-            section: .nextWeek,
             participantType: .limited,
             maxParticipants: 20,
             rsvpCount: 18,
@@ -158,13 +228,13 @@ struct SampleData {
 
     // MARK: Activity Plans Array
     static let activityPlans: [ActivityPlan] = [
-        ActivityPlan(title: "Self-defense introduction", organizer: "Pafras - 8 Interested", interestedCount: 8, rsvpStatuses: [
+        ActivityPlan(title: "Taekwondo", organizer: "Richie - 8 Interested", interestedCount: 8, rsvpStatuses: [
             RSVPResponse(status: .yes, count: 3),
             RSVPResponse(status: .no, count: 2),
             RSVPResponse(status: .idk, count: 3),
         ]),
-        ActivityPlan(title: "Self-defense introduction", organizer: "Pafras - 8 Interested", interestedCount: 8, rsvpStatuses: []),
-        ActivityPlan(title: "Self-defense introduction", organizer: "Pafras - 8 Interested", interestedCount: 8, rsvpStatuses: []),
-        ActivityPlan(title: "Self-defense introduction", organizer: "Pafras - 8 Interested", interestedCount: 8, rsvpStatuses: []),
+        ActivityPlan(title: "Apple Academy Marathon", organizer: "Marcus - 8 Interested", interestedCount: 8, rsvpStatuses: []),
+        ActivityPlan(title: "Cooking Class Vol. 3", organizer: "Lewandowski - 8 Interested", interestedCount: 8, rsvpStatuses: []),
+        ActivityPlan(title: "Jamming Apple Bali Band", organizer: "Bellingham - 8 Interested", interestedCount: 8, rsvpStatuses: []),
     ]
 }

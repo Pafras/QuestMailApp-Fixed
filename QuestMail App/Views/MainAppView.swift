@@ -69,6 +69,7 @@ struct MainAppView: View {
     @State private var desireActivities: [DesireActivity] = SampleData.desireActivities
     @State private var activityPlans: [ActivityPlan] = SampleData.activityPlans
     @State private var composingDesireID: UUID?
+    @State private var editingPlanID: UUID?
     
     // MARK: RSVP State
     @State private var rsvpedQuestIDs: Set<UUID> = []
@@ -80,7 +81,7 @@ struct MainAppView: View {
                 // MARK: Navigation Header
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Quest Board")
-                        .font(.largeTitle)
+                    .font(.largeTitle)
                         .fontWeight(.bold)
                     Text("The Bridge Tavern")
                         .font(.subheadline)
@@ -147,13 +148,24 @@ struct MainAppView: View {
                     initialActivity: composeInitialActivity,
                     onSubmit: { plan in
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
-                            activityPlans.append(plan)
-                            // Remove desire from list when submitted from Desires tab
-                            if let desireID = composingDesireID {
-                                desireActivities.removeAll { $0.id == desireID }
-                                composingDesireID = nil
+                            if composeMode == .compose {
+                                // From Desires: add new plan, remove desire, go to Activity Planning
+                                activityPlans.append(plan)
+                                if let desireID = composingDesireID {
+                                    desireActivities.removeAll { $0.id == desireID }
+                                    composingDesireID = nil
+                                }
+                                selectedTab = .activityPlanning
+                            } else {
+                                // From Activity Planning: remove plan, create ScheduledQuest, go to On Schedule
+                                if let planID = editingPlanID {
+                                    activityPlans.removeAll { $0.id == planID }
+                                    editingPlanID = nil
+                                }
+                                let newQuest = createScheduledQuest(from: plan)
+                                scheduledQuests.append(newQuest)
+                                selectedTab = .onSchedule
                             }
-                            selectedTab = .activityPlanning
                         }
                     }
                 )
@@ -161,6 +173,7 @@ struct MainAppView: View {
             .onChange(of: selectedPlan) { _, plan in
                 if let plan {
                     composeMode = .editPlan
+                    editingPlanID = plan.id
                     composeInitialTitle = plan.title
                     composeInitialActivity = plan.activity
                     selectedPlan = nil
@@ -288,6 +301,34 @@ struct MainAppView: View {
         .padding(.horizontal)
         .padding(.vertical, 4)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedTab)
+    }
+    
+    // MARK: - Create ScheduledQuest from ActivityPlan
+    private func createScheduledQuest(from plan: ActivityPlan) -> ScheduledQuest {
+        // Combine plan.date (day) and plan.time (hour/minute) into a single Date
+        let cal = Calendar.current
+        let dayComponents = cal.dateComponents([.year, .month, .day], from: plan.date)
+        let timeComponents = cal.dateComponents([.hour, .minute], from: plan.time)
+        var combined = DateComponents()
+        combined.year = dayComponents.year
+        combined.month = dayComponents.month
+        combined.day = dayComponents.day
+        combined.hour = timeComponents.hour
+        combined.minute = timeComponents.minute
+        let scheduledDate = cal.date(from: combined) ?? plan.date
+        
+        return ScheduledQuest(
+            title: plan.title,
+            venue: plan.place.isEmpty ? "TBD" : plan.place,
+            scheduledDate: scheduledDate,
+            iconName: "star.fill",
+            participantType: plan.participantType,
+            maxParticipants: plan.maxParticipants,
+            rsvpCount: 0,
+            activityDetail: plan.activity,
+            reward: plan.reward,
+            organizer: plan.organizer
+        )
     }
     
     // finds the quest by id in the @State array and increments or decrements rsvpCount
