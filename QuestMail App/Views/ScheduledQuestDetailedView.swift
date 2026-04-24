@@ -15,7 +15,7 @@ struct ScheduledQuestDetailView: View {
     // questData: frozen snapshot from MainAppView's navigationDestination
     let questData: ScheduledQuest
 
-    // rsvpedQuestIDs: shared binding back to MainAppView — keeps OnScheduleView in sync
+    // rsvpedQuestIDs: shared binding back to MainAppView, keeps OnScheduleView in sync
     @Binding var rsvpedQuestIDs: Set<UUID>
 
     @Environment(\.dismiss) private var dismiss
