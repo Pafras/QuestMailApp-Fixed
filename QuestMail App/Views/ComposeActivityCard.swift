@@ -36,7 +36,13 @@ struct ComposeActivityCard: View {
     @State private var hostedBy: String = ""
     @State private var place: String = ""
     @State private var selectedDate = Date()
-    @State private var selectedTime = Date()
+    @State private var selectedTime: Date = {
+        let cal = Calendar.current
+        var c = cal.dateComponents([.year, .month, .day], from: Date())
+        c.hour = 0
+        c.minute = 0
+        return cal.date(from: c) ?? Date()
+    }()
     @State private var hasParticipantLimit = false
     @State private var participantCount: Int = 2
     @State private var showSuccess = false
@@ -216,7 +222,12 @@ struct ComposeActivityCard: View {
             interestedCount: 0,
             rsvpStatuses: [],
             activity: activity,
-            place: place
+            place: place,
+            reward: reward,
+            date: selectedDate,
+            time: selectedTime,
+            participantType: hasParticipantLimit ? .limited : .open,
+            maxParticipants: hasParticipantLimit ? participantCount : nil
         )
         onSubmit?(newPlan)
         dismiss()

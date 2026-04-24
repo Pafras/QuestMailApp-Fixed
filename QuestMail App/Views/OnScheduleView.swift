@@ -31,6 +31,12 @@ struct OnScheduleView: View {
             }
     }
 
+    // MARK: - Computed Sections
+    private var sortedSections: [ScheduleSection] {
+        let sections = Set(quests.map { ScheduleSection.from(date: $0.scheduledDate) })
+        return sections.sorted { $0.sortOrder < $1.sortOrder }
+    }
+
     // MARK: - Scroll Content
     private var questScrollContent: some View {
         ScrollView {
@@ -48,7 +54,7 @@ struct OnScheduleView: View {
                 .padding(.vertical, 12)
 
                 // MARK: Quest Sections
-                ForEach(QuestSection.allCases, id: \.self) { section in
+                ForEach(sortedSections, id: \.self) { section in
                     questSection(section)
                 }
             }
@@ -57,10 +63,12 @@ struct OnScheduleView: View {
 
     // MARK: - Section Builder
     @ViewBuilder
-    private func questSection(_ section: QuestSection) -> some View {
-        let sectionQuests = quests.filter { $0.section == section }
+    private func questSection(_ section: ScheduleSection) -> some View {
+        let sectionQuests = quests
+            .filter { ScheduleSection.from(date: $0.scheduledDate) == section }
+            .sorted { $0.scheduledDate < $1.scheduledDate }
         if !sectionQuests.isEmpty {
-            Text(section.rawValue)
+            Text(section.title)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
@@ -200,7 +208,7 @@ struct SwipeableQuestRow: View {
             QuestRow(quest: quest, isRSVPed: isRSVPed)
                 .background(Color(.systemBackground))
                 .offset(x: offset)
-                .gesture(dragGesture)
+                .simultaneousGesture(dragGesture)
                 .onTapGesture {
                     if isRevealed {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -256,9 +264,20 @@ struct SwipeableQuestRow: View {
     }
 
     // MARK: Drag Gesture
+    @State private var isHorizontalDrag: Bool? = nil
+
     private var dragGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 12)
             .onChanged { value in
+                // Determine direction on first significant movement
+                if isHorizontalDrag == nil {
+                    let horizontal = abs(value.translation.width)
+                    let vertical = abs(value.translation.height)
+                    isHorizontalDrag = horizontal > vertical
+                }
+                // Only process horizontal swipes — let ScrollView handle vertical
+                guard isHorizontalDrag == true else { return }
+
                 if value.translation.width < 0 && !isRevealed {
                     offset = value.translation.width
                 } else if value.translation.width > 0 && isRevealed {
@@ -266,6 +285,8 @@ struct SwipeableQuestRow: View {
                 }
             }
             .onEnded { _ in
+                defer { isHorizontalDrag = nil }
+                guard isHorizontalDrag == true else { return }
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     if !isRevealed && -offset > actionWidth * 0.5 {
                         offset = -actionWidth
@@ -367,10 +388,10 @@ struct QuestRow: View {
     // MARK: Date & Time
     private var questDateTime: some View {
         VStack(alignment: .trailing, spacing: 3) {
-            Text(quest.date)
+            Text(quest.formattedDate)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(quest.time)
+            Text(quest.formattedTime)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

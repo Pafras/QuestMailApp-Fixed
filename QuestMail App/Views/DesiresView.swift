@@ -18,6 +18,7 @@ struct DesiresView: View {
     @State private var showAddDesire = false
     @State private var showAddSuccess = false
     @State private var animatingVoteID: UUID?
+    @Namespace private var cardAnimation
     
     // MARK: Computed - sorted by votes
     private var sortedActivities: [DesireActivity] {
@@ -69,6 +70,7 @@ struct DesiresView: View {
                             onVote: { toggleVote(for: activity.id) },
                             onCompose: { onComposeQuest(activity.id) }
                         )
+                        .matchedGeometryEffect(id: activity.id, in: cardAnimation)
                         .id(activity.id)
                         .onTapGesture {
                             selectedActivity = activity
@@ -92,6 +94,7 @@ struct DesiresView: View {
                                 isAnimating: animatingVoteID == activity.id,
                                 onVote: { toggleVote(for: activity.id) }
                             )
+                            .matchedGeometryEffect(id: activity.id, in: cardAnimation)
                             .id(activity.id)
                             .onTapGesture {
                                 selectedActivity = activity
