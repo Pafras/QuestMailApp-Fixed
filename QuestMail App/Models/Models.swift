@@ -287,13 +287,13 @@ struct SampleData {
     /// Array berisi 4 rencana aktivitas contoh yang tampil di tab "Activity Planning".
     /// Masing-masing bisa diedit dan dipindahkan ke On Schedule setelah lengkap.
     static let activityPlans: [ActivityPlan] = [
-        ActivityPlan(title: "Taekwondo", organizer: "Richie - 8 Interested", interestedCount: 8, rsvpStatuses: [
+        ActivityPlan(title: "Taekwondo", organizer: "Richie", interestedCount: 8, rsvpStatuses: [
             RSVPResponse(status: .yes, count: 3),
             RSVPResponse(status: .no, count: 2),
             RSVPResponse(status: .idk, count: 3),
         ]),
-        ActivityPlan(title: "Apple Academy Marathon", organizer: "Marcus - 8 Interested", interestedCount: 8, rsvpStatuses: []),
-        ActivityPlan(title: "Cooking Class Vol. 3", organizer: "Lewandowski - 8 Interested", interestedCount: 8, rsvpStatuses: []),
-        ActivityPlan(title: "Jamming Apple Bali Band", organizer: "Bellingham - 8 Interested", interestedCount: 8, rsvpStatuses: []),
+        ActivityPlan(title: "Apple Academy Marathon", organizer: "Marcus", interestedCount: 8, rsvpStatuses: []),
+        ActivityPlan(title: "Cooking Class Vol. 3", organizer: "Lewandowski", interestedCount: 8, rsvpStatuses: []),
+        ActivityPlan(title: "Jamming Apple Bali Band", organizer: "Bellingham", interestedCount: 8, rsvpStatuses: []),
     ]
 }

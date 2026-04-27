@@ -28,18 +28,16 @@ enum QuestTab: String, CaseIterable {
     case onSchedule = "On Schedule"
     case desires = "Desires"
     case activityPlanning = "Activity Planning"
-<<<<<<< Updated upstream
     
-=======
     case history = "History"
 
     // MARK: icon — SF Symbol untuk Setiap Tab
->>>>>>> Stashed changes
     var icon: String {
         switch self {
         case .onSchedule: return "calendar.badge.clock"
         case .desires: return "heart.fill"
         case .activityPlanning: return "list.clipboard.fill"
+        case .history: return "clock.arrow.circlepath"
         }
     }
 
@@ -50,6 +48,7 @@ enum QuestTab: String, CaseIterable {
         case .onSchedule: return .blue
         case .desires: return .orange
         case .activityPlanning: return .green
+        case .history: return .purple
         }
     }
 
@@ -59,6 +58,7 @@ enum QuestTab: String, CaseIterable {
         case .onSchedule: return "Scheduled Quests"
         case .desires: return "Desires & Wishes"
         case .activityPlanning: return "Activity Planning"
+        case .history: return "My Quest History"
         }
     }
 
@@ -68,6 +68,7 @@ enum QuestTab: String, CaseIterable {
         case .onSchedule: return "Keep track of your upcoming quests, including scheduled events and meetups."
         case .desires: return "Browse and upvote activities you'd love to try, bundled by popularity."
         case .activityPlanning: return "Organize and plan new activities with your group, from idea to execution."
+        case .history: return "Quests you've RSVPed to, upcoming and completed."
         }
     }
 }
@@ -150,7 +151,7 @@ struct MainAppView: View {
                 // MARK: Header (Judul Aplikasi)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Quest Board")
-                    .font(.largeTitle)
+                        .font(.largeTitle)
                         .fontWeight(.bold)
                     Text("The Bridge Tavern")
                         .font(.subheadline)
@@ -201,6 +202,11 @@ struct MainAppView: View {
                             onComposeQuest: { desireID in
                                 composeMode = .compose
                                 composingDesireID = desireID
+                                // find the desire by id and store its wantCount
+                                    // so it can become interestedCount in the ActivityPlan
+                                    if let desireItem = desireActivities.first(where: { eachDesire in eachDesire.id == desireID }) {
+                                        composingDesireWantCount = desireItem.wantCount
+                                    }
                                 composeInitialTitle = ""
                                 composeInitialActivity = ""
                                 showComposeCard = true
@@ -211,16 +217,13 @@ struct MainAppView: View {
                             plans: activityPlans,
                             selectedPlan: $selectedPlan
                         )
-<<<<<<< Updated upstream
-=======
                     case .history:
-                        // HistoryView menerima data read-only (bukan @Binding)
-                        // karena hanya menampilkan, tidak mengubah data.
+                        // passes the full quest array + the set of RSVPed IDs
+                        // HistoryView will filter internally to find the ones the user joined
                         HistoryView(
-                            questsData: scheduledQuests,
-                            rsvpedQuestIDs: rsvpedQuestIDs
+                            questsData: scheduledQuests,         // source: MainAppView's @State array
+                            rsvpedQuestIDs: rsvpedQuestIDs       // source: MainAppView's @State set — NOT a binding, read-only here
                         )
->>>>>>> Stashed changes
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

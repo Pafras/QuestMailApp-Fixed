@@ -34,12 +34,11 @@ struct ScheduledQuestDetailView: View {
     /// Data ini disalin saat navigationDestination terbuka.
     let questData: ScheduledQuest
 
-<<<<<<< Updated upstream
-    // rsvpedQuestIDs: shared binding back to MainAppView — keeps OnScheduleView in sync
-=======
     /// Set ID quest yang sudah di-RSVP — @Binding ke MainAppView.
     /// Perubahan di sini langsung terlihat di OnScheduleView (checkmark).
->>>>>>> Stashed changes
+
+    // rsvpedQuestIDs: shared binding back to MainAppView, keeps OnScheduleView in sync
+
     @Binding var rsvpedQuestIDs: Set<UUID>
 
     /// Environment untuk menutup halaman ini (kembali ke list)
