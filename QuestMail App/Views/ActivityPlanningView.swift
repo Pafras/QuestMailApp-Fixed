@@ -20,21 +20,21 @@ import SwiftUI
 /// Saat salah satu plan di-tap, selectedPlan di-set dan MainAppView
 /// akan membuka ComposeActivityCard untuk mengisi detail plan tersebut.
 struct ActivityPlanningView: View {
-
+    
     // MARK: - Properties
     /// Daftar rencana aktivitas — read-only (let), data berasal dari MainAppView
     let plans: [ActivityPlan]
-
+    
     /// Plan yang sedang dipilih — @Binding ke MainAppView.
     /// Saat user tap sebuah plan, value ini di-set → MainAppView mendeteksi perubahan
     /// via .onChange dan membuka ComposeActivityCard dalam mode .editPlan.
     @Binding var selectedPlan: ActivityPlan?
-
+    
     // MARK: - Body
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-
+                
                 // MARK: Section Header
                 Text("Being Organized")
                     .font(.subheadline)
@@ -43,7 +43,7 @@ struct ActivityPlanningView: View {
                     .padding(.horizontal)
                     .padding(.top, 16)
                     .padding(.bottom, 12)
-
+                
                 // MARK: Plan Rows (Daftar Baris Rencana Aktivitas)
                 // Loop setiap plan dan tampilkan sebagai baris yang bisa di-tap.
                 // Saat di-tap, selectedPlan diisi → trigger navigasi ke ComposeActivityCard.
@@ -58,12 +58,12 @@ struct ActivityPlanningView: View {
                     Divider()
                         .padding(.horizontal)
                 }
-
+                
                 // MARK: Footer Note (Catatan Informasi di Bawah)
                 // Memberitahu user bahwa plan akan pindah ke On Schedule setelah detail lengkap
                 Spacer()
                     .frame(height: 60)
-
+                
                 HStack {
                     Spacer()
                     Text("When all details are set,\nevents move to On Schedule")
@@ -81,10 +81,10 @@ struct ActivityPlanningView: View {
 /// View kecil yang menampilkan satu baris rencana aktivitas.
 /// Terdiri dari: judul plan, nama organizer, dan chevron (panah kanan).
 struct ActivityPlanRow: View {
-
+    
     /// Data plan yang ditampilkan di baris ini
     let plan: ActivityPlan
-
+    
     // MARK: - Body
     var body: some View {
         HStack {
@@ -93,15 +93,16 @@ struct ActivityPlanRow: View {
                 Text(plan.title)
                     .font(.subheadline)
                     .fontWeight(.semibold)
-
-                // MARK: Organizer (Nama Penyelenggara)
-                Text("by \(plan.organizer)")
+                
+                // MARK: Organizer
+                Text("by \(plan.organizer) · \(plan.interestedCount) interested")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                
             }
-
+            
             Spacer()
-
+            
             // MARK: Chevron (Panah Kanan — Indikasi Bisa Di-tap)
             Image(systemName: "chevron.right")
                 .font(.caption)
@@ -109,7 +110,9 @@ struct ActivityPlanRow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
+        
     }
+       
 }
 
 // MARK: - Preview

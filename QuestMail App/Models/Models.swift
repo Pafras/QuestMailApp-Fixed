@@ -164,7 +164,7 @@ struct ActivityPlan: Identifiable, Hashable {
     let id = UUID()                                       // ID unik otomatis
     let title: String                                     // Judul rencana (contoh: "Taekwondo")
     let organizer: String                                 // Nama organizer + jumlah yang tertarik
-    let interestedCount: Int                              // Jumlah orang yang tertarik
+    var interestedCount: Int                              // Jumlah orang yang tertarik
     let rsvpStatuses: [RSVPResponse]                      // Array respon RSVP (berapa Yes, No, Idk)
     var activity: String = ""                             // Deskripsi aktivitas (diisi di ComposeCard)
     var place: String = ""                                // Lokasi (diisi di ComposeCard)
