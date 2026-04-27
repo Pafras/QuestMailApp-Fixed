@@ -108,8 +108,12 @@ struct ComposeActivityCard: View {
     /// Custom init untuk mengisi nilai awal title dan activity.
     /// Diperlukan karena @State harus diinisialisasi lewat State(initialValue:)
     /// saat nilainya berasal dari parameter init.
-    init(mode: ComposeMode = .compose, initialTitle: String = "", initialActivity: String = "", onSubmit: ((ActivityPlan) -> Void)? = nil) {
+    /// Jumlah orang yang tertarik (dari wantCount desire atau interestedCount plan)
+    var interestedCount: Int = 0
+
+    init(mode: ComposeMode = .compose, initialTitle: String = "", initialActivity: String = "", interestedCount: Int = 0, onSubmit: ((ActivityPlan) -> Void)? = nil) {
         self.mode = mode
+        self.interestedCount = interestedCount
         self.onSubmit = onSubmit
         _questTitle = State(initialValue: initialTitle)
         _activity = State(initialValue: initialActivity)
@@ -288,7 +292,7 @@ struct ComposeActivityCard: View {
         let newPlan = ActivityPlan(
             title: questTitle,
             organizer: hostedBy,
-            interestedCount: 0,
+            interestedCount: interestedCount,
             rsvpStatuses: [],
             activity: activity,
             place: place,
