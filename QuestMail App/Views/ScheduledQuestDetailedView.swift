@@ -4,46 +4,76 @@
 //
 //  Created by Pafras Vio Prayogo on 23/04/26.
 //
+//  File ini berisi halaman detail untuk satu quest terjadwal.
+//  Dibuka saat user tap quest di OnScheduleView.
+//  Menampilkan semua informasi quest dan tombol RSVP/Cancel.
+//
+//  Struktur file:
+//  1. ScheduledQuestDetailView — View utama halaman detail quest
+//
+//  Konsep penting - "Frozen Snapshot":
+//  questData yang diterima dari navigationDestination adalah SALINAN (copy).
+//  Artinya questData tidak akan berubah meskipun data asli di MainAppView berubah.
+//  Karena itu, kita pakai localRsvpCount sebagai "mirror" yang bisa di-update lokal.
+//
 
 import SwiftUI
 
+// MARK: - ScheduledQuestDetailView (Halaman Detail Quest)
+/// Menampilkan detail lengkap satu quest: judul, aktivitas, reward,
+/// lokasi, waktu, host, peserta, dan tombol RSVP.
 struct ScheduledQuestDetailView: View {
 
-    // onRSVPChange: passed FROM MainAppView
+    // MARK: - Properties dari Parent View
+
+    /// Closure callback: dipanggil saat RSVP/cancel untuk mengupdate rsvpCount di MainAppView.
+    /// Parameter: (questID, isJoining) — true = RSVP, false = cancel.
     var onRSVPChange: (UUID, Bool) -> Void
 
-    // questData: frozen snapshot from MainAppView's navigationDestination
+    /// Data quest yang ditampilkan — FROZEN SNAPSHOT (salinan, tidak berubah otomatis).
+    /// Data ini disalin saat navigationDestination terbuka.
     let questData: ScheduledQuest
 
+<<<<<<< Updated upstream
     // rsvpedQuestIDs: shared binding back to MainAppView — keeps OnScheduleView in sync
+=======
+    /// Set ID quest yang sudah di-RSVP — @Binding ke MainAppView.
+    /// Perubahan di sini langsung terlihat di OnScheduleView (checkmark).
+>>>>>>> Stashed changes
     @Binding var rsvpedQuestIDs: Set<UUID>
 
+    /// Environment untuk menutup halaman ini (kembali ke list)
     @Environment(\.dismiss) private var dismiss
 
-    // MARK: - Local State
+    // MARK: - State Lokal
+
+    /// Mengontrol tampilan overlay konfirmasi cancel RSVP
     @State private var showCancelConfirmation = false
 
-    // local mirror of rsvpCount — seeds from questData on appear
-    // needed because questData is a frozen copy and can't update itself
+    /// Salinan lokal rsvpCount — dibutuhkan karena questData adalah frozen snapshot.
+    /// Diisi dari questData.rsvpCount saat view muncul (onAppear).
+    /// Diupdate langsung saat user RSVP/cancel supaya UI langsung berubah.
     @State private var localRsvpCount: Int = 0
 
-    // MARK: - Computed
+    // MARK: - Computed Properties
+
+    /// Cek apakah user sudah RSVP quest ini
     private var isRSVPed: Bool {
         rsvpedQuestIDs.contains(questData.id)
     }
 
+    /// Cek apakah quest sudah penuh (hanya untuk tipe Limited)
     private var isQuestFull: Bool {
         questData.participantType == .limited &&
         localRsvpCount >= (questData.maxParticipants ?? 0)
     }
 
-    // MARK: - Body
+    // MARK: - Body (Layout Utama)
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
 
-                // MARK: Title + Activity
-                // source: questData.title, questData.activityDetail
+                // MARK: Card 1 — Title + Activity Detail
                 VStack(alignment: .leading, spacing: 10) {
                     Text(questData.title)
                         .font(.title2)
@@ -56,7 +86,6 @@ struct ScheduledQuestDetailView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
 
-                    // LATER: filled from ComposeActivityCard's `activity` field
                     Text(questData.activityDetail)
                         .font(.subheadline)
                 }
@@ -68,9 +97,7 @@ struct ScheduledQuestDetailView: View {
                         .shadow(color: .black.opacity(0.07), radius: 6, y: 2)
                 )
 
-                // MARK: Reward
-                // source: questData.reward
-                // LATER: filled from ComposeActivityCard's `reward` field
+                // MARK: Card 2 — Reward (Apa yang Didapat Peserta)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("WHAT YOU'LL WALK AWAY WITH")
                         .font(.caption)
@@ -88,14 +115,12 @@ struct ScheduledQuestDetailView: View {
                         .shadow(color: .black.opacity(0.07), radius: 6, y: 2)
                 )
 
-                // MARK: Logistics (Time, Place, Host)
-                // source: questData.time, questData.venue, questData.organizer
+                // MARK: Card 3 — Logistics (Waktu, Tempat, Host)
                 VStack(spacing: 0) {
                     missingDetailRow(icon: "clock.fill",         color: .blue,   label: "Time",  value: questData.formattedTime)
                     Divider().padding(.leading, 48)
                     missingDetailRow(icon: "mappin.circle.fill",  color: .red,    label: "Place", value: questData.venue)
                     Divider().padding(.leading, 48)
-                    // LATER: filled from ComposeActivityCard's `hostedBy` field
                     missingDetailRow(icon: "person.circle.fill",  color: .purple, label: "Host",  value: questData.organizer)
                 }
                 .background(
@@ -104,8 +129,9 @@ struct ScheduledQuestDetailView: View {
                         .shadow(color: .black.opacity(0.07), radius: 6, y: 2)
                 )
 
-                // MARK: Participants
-                // localRsvpCount used instead of questData.rsvpCount so it updates on RSVP
+                // MARK: Card 4 — Participants (Info Peserta)
+                // Menggunakan localRsvpCount (bukan questData.rsvpCount)
+                // supaya angka langsung berubah saat RSVP/cancel.
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Participants")
@@ -114,7 +140,7 @@ struct ScheduledQuestDetailView: View {
 
                         Spacer()
 
-                        // source: questData.participantType
+                        // Badge "Open" atau "Limited" dengan warna berbeda
                         Text(questData.participantType.rawValue)
                             .font(.caption2)
                             .fontWeight(.semibold)
@@ -128,22 +154,25 @@ struct ScheduledQuestDetailView: View {
                     }
 
                     if questData.participantType == .limited, let maxSlots = questData.maxParticipants {
-                        // uses localRsvpCount so it reacts to RSVP immediately
+                        // Tipe Limited: tampilkan "X of Y spots taken"
                         Text("\(localRsvpCount) of \(maxSlots) spots taken")
                             .font(.caption)
                             .foregroundStyle(isQuestFull ? .red : .secondary)
 
                         if isQuestFull {
+                            // Quest sudah penuh — tampilkan "FULL" merah
                             Text("FULL")
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.red)
                         } else {
+                            // Masih ada slot — tampilkan sisa slot
                             Text("\(maxSlots - localRsvpCount) spots left")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     } else {
+                        // Tipe Open: tampilkan "X joined"
                         Text("\(localRsvpCount) joined")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -157,8 +186,8 @@ struct ScheduledQuestDetailView: View {
                         .shadow(color: .black.opacity(0.07), radius: 6, y: 2)
                 )
 
-                // MARK: You're Going Badge
-                // only shown when isRSVPed — same pattern as DesiresView's voted label
+                // MARK: "You're Going!" Badge (Konfirmasi RSVP)
+                // Hanya tampil jika user sudah RSVP — memberikan kepastian visual
                 if isRSVPed {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.seal.fill")
@@ -189,7 +218,10 @@ struct ScheduledQuestDetailView: View {
             .padding(.top, 16)
             .padding(.bottom, 20)
         }
+        // MARK: Bottom RSVP Button (Fixed di Bawah Layar)
+        // safeAreaInset: menambahkan konten di area bawah tanpa menutupi scroll content
         .safeAreaInset(edge: .bottom) { rsvpButton }
+        // Overlay konfirmasi cancel
         .overlay {
             if showCancelConfirmation { cancelOverlay }
         }
@@ -207,30 +239,39 @@ struct ScheduledQuestDetailView: View {
                 }
             }
         }
-        // seeds localRsvpCount from the frozen questData snapshot
+        // Inisialisasi localRsvpCount dari data quest saat view pertama kali muncul
         .onAppear {
             localRsvpCount = questData.rsvpCount
         }
     }
 
-    // MARK: - RSVP Button
-    // PASSES TO: rsvpedQuestIDs binding → MainAppView → OnScheduleView checkmark
-    // PASSES TO: onRSVPChange closure → MainAppView updates the array's rsvpCount
-    // UPDATES: localRsvpCount so participant count reflects change immediately
+    // MARK: - rsvpButton — Tombol RSVP / Cancel (Fixed di Bawah)
+    /// Tombol utama di bagian bawah layar untuk RSVP atau cancel.
+    /// Teks dan warna berubah sesuai status:
+    /// - Belum RSVP + ada slot → "RSVP — I'm in!" (biru)
+    /// - Sudah RSVP → "Cancel RSVP" (merah)
+    /// - Quest penuh + belum RSVP → "Quest is Full" (abu-abu, disabled)
+    ///
+    /// Alur data saat RSVP:
+    /// 1. rsvpedQuestIDs.insert → sinkronisasi checkmark di OnScheduleView
+    /// 2. onRSVPChange → MainAppView mengupdate rsvpCount di array utama
+    /// 3. localRsvpCount += 1 → angka peserta langsung berubah di halaman ini
     private var rsvpButton: some View {
         VStack(spacing: 0) {
             Divider()
             VStack(spacing: 8) {
                 Button {
                     if isRSVPed {
+                        // Sudah RSVP → tampilkan konfirmasi cancel
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             showCancelConfirmation = true
                         }
                     } else {
+                        // Belum RSVP → langsung RSVP
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            rsvpedQuestIDs.insert(questData.id)  // syncs checkmark in OnScheduleView
-                            onRSVPChange(questData.id, true)     // tells MainAppView to increment count
-                            localRsvpCount += 1                  // updates participant count immediately
+                            rsvpedQuestIDs.insert(questData.id)
+                            onRSVPChange(questData.id, true)
+                            localRsvpCount += 1
                         }
                     }
                 } label: {
@@ -253,8 +294,10 @@ struct ScheduledQuestDetailView: View {
                             )
                     )
                 }
+                // Disabled jika quest penuh DAN user belum RSVP
                 .disabled(isQuestFull && !isRSVPed)
 
+                // Hint teks — hanya tampil jika bisa RSVP
                 if !isRSVPed && !isQuestFull {
                     Text("Or swipe the row in the list to RSVP instantly.")
                         .font(.caption2)
@@ -263,14 +306,17 @@ struct ScheduledQuestDetailView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(.regularMaterial)
+            .background(.regularMaterial)  // Background blur di belakang tombol
         }
     }
 
-    // MARK: - Cancel Confirmation Overlay
-    // same pattern as OnScheduleView's cancelConfirmationOverlay
+    // MARK: - cancelOverlay — Popup Konfirmasi Cancel RSVP
+    /// Overlay yang muncul saat user tekan "Cancel RSVP".
+    /// Pola yang sama dengan OnScheduleView: "Keep" atau "Cancel RSVP".
+    /// Alur cancel: hapus dari set → beritahu MainAppView → kurangi localCount.
     private var cancelOverlay: some View {
         ZStack {
+            // Background gelap — tap untuk menutup (batal cancel)
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
                 .onTapGesture {
@@ -288,13 +334,13 @@ struct ScheduledQuestDetailView: View {
                     .font(.title3)
                     .fontWeight(.bold)
 
-                // uses questData.title so user knows exactly which quest they're cancelling
                 Text("Are you sure you want to cancel your RSVP for \"\(questData.title)\"?")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
                 HStack(spacing: 12) {
+                    // Tombol Keep — batal cancel
                     Button {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                             showCancelConfirmation = false
@@ -312,11 +358,12 @@ struct ScheduledQuestDetailView: View {
                             )
                     }
 
+                    // Tombol Cancel RSVP — konfirmasi cancel
                     Button {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            rsvpedQuestIDs.remove(questData.id)  // syncs checkmark in OnScheduleView
-                            onRSVPChange(questData.id, false)    // tells MainAppView to decrement count
-                            localRsvpCount -= 1                  // updates participant count immediately
+                            rsvpedQuestIDs.remove(questData.id)   // Hapus dari set RSVP
+                            onRSVPChange(questData.id, false)      // Beritahu MainAppView
+                            localRsvpCount -= 1                    // Update count lokal
                             showCancelConfirmation = false
                         }
                     } label: {
@@ -343,9 +390,9 @@ struct ScheduledQuestDetailView: View {
         }
     }
 
-    // MARK: - missingDetailRow
-    // reusable row for logisticsCard
-    // `label` = what the slot shows, `value` = string from questData
+    // MARK: - missingDetailRow() — Baris Detail Logistik (Reusable)
+    /// Komponen helper yang menampilkan satu baris informasi logistik (icon + label + value).
+    /// Digunakan 3 kali di card Logistics: Time, Place, dan Host.
     private func missingDetailRow(icon: String, color: Color, label: String, value: String) -> some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
@@ -368,7 +415,7 @@ struct ScheduledQuestDetailView: View {
 }
 
 // MARK: - Preview
-// index [1] = Futsal — Limited quest, good for testing participant count update
+// Menggunakan index [1] = Futsal (Limited, 10/14) — bagus untuk testing participant count
 #Preview {
     NavigationStack {
         ScheduledQuestDetailView(

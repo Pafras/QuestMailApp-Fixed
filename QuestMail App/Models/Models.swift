@@ -4,21 +4,40 @@
 //
 //  Created by Pafras Vio Prayogo on 19/04/26.
 //
+//  File ini berisi semua data model (struktur data) yang digunakan di seluruh aplikasi.
+//  Setiap struct/enum di sini mendefinisikan bentuk data yang ditampilkan di UI.
+//
+//  Struktur file:
+//  1. ScheduleSection   — Enum untuk mengelompokkan quest berdasarkan minggu/bulan
+//  2. ParticipantType   — Enum tipe partisipan (Open / Limited)
+//  3. ScheduledQuest    — Model data quest yang sudah terjadwal
+//  4. DesireActivity    — Model data desire (aktivitas yang diinginkan)
+//  5. RSVPStatus        — Enum status RSVP (Yes / No / Idk)
+//  6. ActivityPlan      — Model data rencana aktivitas yang sedang diorganisir
+//  7. RSVPResponse      — Model respon RSVP dengan jumlah orang per status
+//  8. SampleData        — Data dummy/contoh untuk preview dan testing
+//
 
 import Foundation
 
-// MARK: - Schedule Section (Dynamic, Date-Based)
-
+// MARK: - ScheduleSection (Pengelompokan Quest Berdasarkan Waktu)
+/// Enum ini digunakan untuk mengelompokkan quest di tab "On Schedule"
+/// menjadi section-section berdasarkan waktu: "This Week", "Next Week", atau nama bulan.
+/// Conform ke Hashable supaya bisa digunakan sebagai key di ForEach dan Set.
 enum ScheduleSection: Hashable {
-    case thisWeek
-    case nextWeek
-    case month(year: Int, month: Int)
-    
+    case thisWeek                          // Quest yang jatuh di minggu ini
+    case nextWeek                          // Quest yang jatuh di minggu depan
+    case month(year: Int, month: Int)      // Quest di bulan tertentu (untuk yang lebih jauh)
+
+    // MARK: title — Teks yang Ditampilkan di Section Header
+    /// Menghasilkan judul section yang ditampilkan di UI.
+    /// .thisWeek → "This Week", .nextWeek → "Next Week", .month → "May 2026"
     var title: String {
         switch self {
         case .thisWeek: return "This Week"
         case .nextWeek: return "Next Week"
         case .month(let year, let month):
+            // Menggunakan DateFormatter untuk mengubah angka bulan jadi nama bulan
             let formatter = DateFormatter()
             formatter.dateFormat = "MMMM yyyy"
             var components = DateComponents()
@@ -31,7 +50,10 @@ enum ScheduleSection: Hashable {
             return ""
         }
     }
-    
+
+    // MARK: sortOrder — Urutan untuk Sorting Section
+    /// Angka untuk mengurutkan section dari yang paling dekat ke paling jauh.
+    /// thisWeek = 0, nextWeek = 1, bulan-bulan berikutnya = 2+
     var sortOrder: Int {
         switch self {
         case .thisWeek: return 0
@@ -39,17 +61,26 @@ enum ScheduleSection: Hashable {
         case .month(let year, let month): return 2 + year * 12 + month
         }
     }
-    
+
+    // MARK: from(date:) — Menentukan Section dari Sebuah Tanggal
+    /// Static function yang menentukan sebuah Date masuk ke section mana.
+    /// Logika: cek apakah tanggal jatuh di minggu ini, minggu depan, atau bulan lainnya.
     static func from(date: Date) -> ScheduleSection {
         let cal = Calendar.current
         let now = Date()
+
+        // Ambil interval minggu ini (Senin–Minggu atau sesuai locale)
         guard let thisWeekInterval = cal.dateInterval(of: .weekOfYear, for: now) else {
+            // Fallback: kalau gagal, gunakan bulan
             let c = cal.dateComponents([.year, .month], from: date)
             return .month(year: c.year ?? 2026, month: c.month ?? 1)
         }
+
+        // Hitung batas awal dan akhir minggu depan
         let startOfNextWeek = cal.date(byAdding: .weekOfYear, value: 1, to: thisWeekInterval.start)!
         let endOfNextWeek = cal.date(byAdding: .weekOfYear, value: 1, to: startOfNextWeek)!
-        
+
+        // Tentukan section berdasarkan perbandingan tanggal
         if date < startOfNextWeek {
             return .thisWeek
         } else if date < endOfNextWeek {
@@ -61,33 +92,42 @@ enum ScheduleSection: Hashable {
     }
 }
 
-// MARK: - On Schedule Models
-
+// MARK: - ParticipantType (Tipe Partisipan: Open atau Limited)
+/// Menentukan apakah sebuah quest terbuka untuk semua orang atau dibatasi jumlahnya.
+/// - .open: siapa saja bisa join, tidak ada batas peserta
+/// - .limited: ada batas maksimal peserta (maxParticipants)
 enum ParticipantType: String, Hashable {
     case open = "Open"
     case limited = "Limited"
 }
 
+// MARK: - ScheduledQuest (Model Quest yang Sudah Terjadwal)
+/// Data model untuk quest yang sudah memiliki jadwal pasti dan tampil di tab "On Schedule".
+/// Identifiable: supaya bisa digunakan di ForEach tanpa perlu specify id.
+/// Hashable: supaya bisa digunakan di NavigationDestination dan Set.
 struct ScheduledQuest: Identifiable, Hashable {
-    let id = UUID()
-    let title: String
-    let venue: String
-    let scheduledDate: Date
-    let iconName: String
-    let participantType: ParticipantType
-    let maxParticipants: Int?
-    var rsvpCount: Int
-    let activityDetail: String
-    let reward: String
-    let organizer: String
-    
-    // MARK: Formatted Display
+    let id = UUID()                        // ID unik otomatis — setiap quest punya ID berbeda
+    let title: String                      // Judul quest (contoh: "Futsal")
+    let venue: String                      // Lokasi/tempat (contoh: "Apple Futsal Academy")
+    let scheduledDate: Date                // Tanggal dan waktu quest dijadwalkan
+    let iconName: String                   // Nama SF Symbol icon (contoh: "sportscourt.fill")
+    let participantType: ParticipantType   // Tipe partisipan: Open atau Limited
+    let maxParticipants: Int?              // Maksimal peserta — nil jika Open (tidak dibatasi)
+    var rsvpCount: Int                     // Jumlah orang yang sudah RSVP (var karena bisa berubah)
+    let activityDetail: String             // Deskripsi detail aktivitas
+    let reward: String                     // Apa yang didapat peserta dari quest ini
+    let organizer: String                  // Siapa yang mengorganisir quest ini
+
+    // MARK: formattedDate — Format Tanggal untuk Tampilan (dd/MM)
+    /// Mengubah scheduledDate menjadi format "24/04" untuk ditampilkan di QuestRow
     var formattedDate: String {
         let f = DateFormatter()
         f.dateFormat = "dd/MM"
         return f.string(from: scheduledDate)
     }
-    
+
+    // MARK: formattedTime — Format Waktu untuk Tampilan (h:mm a)
+    /// Mengubah scheduledDate menjadi format "6:00 PM" untuk ditampilkan di QuestRow
     var formattedTime: String {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
@@ -95,51 +135,64 @@ struct ScheduledQuest: Identifiable, Hashable {
     }
 }
 
-// MARK: - Desires Models
-
+// MARK: - DesireActivity (Model Desire/Keinginan Aktivitas)
+/// Data model untuk aktivitas yang diinginkan user, tampil di tab "Desires".
+/// User bisa vote desire ini. Desire dengan vote terbanyak jadi Featured.
 struct DesireActivity: Identifiable, Hashable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    var wantCount: Int
-    let iconName: String
-    let iconColor: String
+    let id = UUID()          // ID unik otomatis
+    let title: String        // Judul desire (contoh: "Salsa Dance")
+    let subtitle: String     // Subtitle/keterangan tambahan (contoh: nama pengusul)
+    var wantCount: Int       // Jumlah vote — var karena berubah saat user vote/unvote
+    let iconName: String     // Nama SF Symbol icon
+    let iconColor: String    // Warna icon dalam bentuk String ("orange", "yellow", "cyan")
 }
 
-// MARK: - Activity Planning Models
-
+// MARK: - RSVPStatus (Status RSVP: Yes, No, atau Idk)
+/// Enum untuk pilihan respon RSVP di Activity Planning.
+/// CaseIterable: supaya bisa di-loop semua case-nya.
 enum RSVPStatus: String, CaseIterable {
-    case yes = "Yes"
-    case no = "No"
-    case idk = "Idk"
+    case yes = "Yes"     // User mau ikut
+    case no = "No"       // User tidak bisa ikut
+    case idk = "Idk"     // User belum yakin
 }
 
+// MARK: - ActivityPlan (Model Rencana Aktivitas yang Sedang Diorganisir)
+/// Data model untuk aktivitas yang sedang dalam tahap perencanaan.
+/// Tampil di tab "Activity Planning". Setelah semua detail diisi,
+/// bisa dipindahkan ke "On Schedule" menjadi ScheduledQuest.
 struct ActivityPlan: Identifiable, Hashable {
-    let id = UUID()
-    let title: String
-    let organizer: String
-    let interestedCount: Int
-    let rsvpStatuses: [RSVPResponse]
-    var activity: String = ""
-    var place: String = ""
-    var reward: String = ""
-    var date: Date = Date()
-    var time: Date = Date()
-    var participantType: ParticipantType = .open
-    var maxParticipants: Int? = nil
+    let id = UUID()                                       // ID unik otomatis
+    let title: String                                     // Judul rencana (contoh: "Taekwondo")
+    let organizer: String                                 // Nama organizer + jumlah yang tertarik
+    let interestedCount: Int                              // Jumlah orang yang tertarik
+    let rsvpStatuses: [RSVPResponse]                      // Array respon RSVP (berapa Yes, No, Idk)
+    var activity: String = ""                             // Deskripsi aktivitas (diisi di ComposeCard)
+    var place: String = ""                                // Lokasi (diisi di ComposeCard)
+    var reward: String = ""                               // Reward/hadiah (diisi di ComposeCard)
+    var date: Date = Date()                               // Tanggal rencana
+    var time: Date = Date()                               // Waktu rencana
+    var participantType: ParticipantType = .open          // Default: Open (siapa saja bisa ikut)
+    var maxParticipants: Int? = nil                       // Batas peserta — nil jika Open
 }
 
+// MARK: - RSVPResponse (Respon RSVP dengan Jumlah Orang)
+/// Menyimpan satu baris respon RSVP: status apa dan berapa orang.
+/// Contoh: RSVPResponse(status: .yes, count: 3) berarti 3 orang jawab "Yes"
 struct RSVPResponse: Identifiable, Hashable {
-    let id = UUID()
-    let status: RSVPStatus
-    let count: Int
+    let id = UUID()          // ID unik otomatis
+    let status: RSVPStatus   // Status: .yes, .no, atau .idk
+    let count: Int           // Berapa orang yang memilih status ini
 }
 
-// MARK: - Sample Data
-
+// MARK: - SampleData (Data Contoh untuk Preview dan Testing)
+/// Struct berisi data dummy/contoh yang digunakan untuk:
+/// - SwiftUI Preview (#Preview) di setiap view
+/// - Sebagai data awal saat app baru dibuka (sebelum ada backend)
 struct SampleData {
-    
-    // MARK: Date Helper
+
+    // MARK: makeDate() — Helper Membuat Date dari Komponen
+    /// Fungsi helper untuk membuat Date dari komponen tanggal dan waktu.
+    /// Memudahkan pembuatan sample data tanpa harus menulis DateComponents berulang.
     private static func makeDate(day: Int, month: Int, year: Int = 2026, hour: Int = 18, minute: Int = 0) -> Date {
         var c = DateComponents()
         c.year = year
@@ -150,7 +203,9 @@ struct SampleData {
         return Calendar.current.date(from: c) ?? Date()
     }
 
-    // MARK: Scheduled Quests Array
+    // MARK: scheduledQuests — Data Contoh Quest Terjadwal
+    /// Array berisi 5 quest contoh yang tampil di tab "On Schedule".
+    /// Mencakup berbagai tipe: Open dan Limited, dengan tanggal berbeda-beda.
     static let scheduledQuests: [ScheduledQuest] = [
         ScheduledQuest(
             title: "Finesse your first moves",
@@ -213,8 +268,10 @@ struct SampleData {
             organizer: "Agung"
         ),
     ]
-    
-    // MARK: Desire Activities Array
+
+    // MARK: desireActivities — Data Contoh Desire Activities
+    /// Array berisi 8 desire contoh yang tampil di tab "Desires".
+    /// wantCount menentukan urutan: yang tertinggi jadi Featured (2 teratas).
     static let desireActivities: [DesireActivity] = [
         DesireActivity(title: "Salsa Dance", subtitle: "Pafras", wantCount: 12, iconName: "triangle.fill", iconColor: "orange"),
         DesireActivity(title: "Mini Soccer", subtitle: "", wantCount: 12, iconName: "triangle.fill", iconColor: "orange"),
@@ -226,7 +283,9 @@ struct SampleData {
         DesireActivity(title: "Monthly FIFA Tournament", subtitle: "", wantCount: 4, iconName: "triangle.fill", iconColor: "cyan"),
     ]
 
-    // MARK: Activity Plans Array
+    // MARK: activityPlans — Data Contoh Activity Plans
+    /// Array berisi 4 rencana aktivitas contoh yang tampil di tab "Activity Planning".
+    /// Masing-masing bisa diedit dan dipindahkan ke On Schedule setelah lengkap.
     static let activityPlans: [ActivityPlan] = [
         ActivityPlan(title: "Taekwondo", organizer: "Richie - 8 Interested", interestedCount: 8, rsvpStatuses: [
             RSVPResponse(status: .yes, count: 3),
