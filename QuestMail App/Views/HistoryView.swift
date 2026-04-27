@@ -3,29 +3,49 @@
 //  QuestMail App
 //
 //  Created by Eduardo Richie Imanuell on 24/04/26.
+//
+//  File ini berisi halaman "History" — tempat user melihat quest yang sudah mereka
+//  RSVP-kan, dibagi menjadi 2 section: Upcoming (belum terjadi) dan Completed (sudah lewat).
+//
+//  Struktur file:
+//  1. HistoryView — View utama yang menampilkan daftar quest yang di-RSVP
+//
+//  Catatan penting:
+//  - View ini READ-ONLY (hanya menampilkan, tidak mengubah data)
+//  - Menggunakan QuestRow dari OnScheduleView (komponen yang dipakai ulang)
+//  - Data berasal dari MainAppView: scheduledQuests array + rsvpedQuestIDs set
+//
 
 import SwiftUI
 
+// MARK: - HistoryView (View Utama Halaman History)
+/// Menampilkan quest yang sudah di-RSVP oleh user.
+/// Quest dibagi menjadi 2 section:
+/// - Upcoming: quest yang tanggalnya belum lewat (diurutkan dari yang terdekat)
+/// - Completed: quest yang tanggalnya sudah lewat (diurutkan dari yang paling baru)
 struct HistoryView: View {
 
-    // questsData: passed FROM MainAppView's scheduledQuests @State array
-    // read-only — this view only displays, never mutates
+    // MARK: - Properties dari Parent View (Read-Only)
+
+    /// Semua data quest dari MainAppView — read-only (let, bukan @Binding)
+    /// karena view ini hanya menampilkan, tidak perlu mengubah data quest.
     let questsData: [ScheduledQuest]
 
-    // rsvpedQuestIDs: passed FROM MainAppView's rsvpedQuestIDs @State set
-    // used to filter which quests the user actually joined
-    // NOT a binding — this view doesn't need to change it
+    /// Set berisi ID quest yang sudah di-RSVP oleh user.
+    /// Juga read-only — HistoryView tidak perlu menambah/menghapus RSVP.
+    /// Data ini digunakan untuk memfilter quest mana saja yang ditampilkan.
     let rsvpedQuestIDs: Set<UUID>
 
-    // MARK: - Computed
-    // filters questsData to only quests the user RSVPed to
-    // source: questsData + rsvpedQuestIDs, both from MainAppView
+    // MARK: - Computed Properties (Filter dan Sorting)
+
+    /// Filter: hanya quest yang ID-nya ada di rsvpedQuestIDs.
+    /// Ini menghasilkan daftar quest yang user benar-benar ikuti.
     private var rsvpedQuests: [ScheduledQuest] {
         questsData.filter { questItem in rsvpedQuestIDs.contains(questItem.id) }
     }
 
-    // upcoming = RSVPed quests where the date is in the future
-    // source: rsvpedQuests filtered by scheduledDate vs today
+    /// Quest yang belum terjadi — tanggal >= hari ini.
+    /// Diurutkan: yang paling dekat tanggalnya muncul paling atas.
     private var upcomingQuests: [ScheduledQuest] {
         rsvpedQuests
             .filter { questItem in
@@ -33,11 +53,11 @@ struct HistoryView: View {
             }
             .sorted { firstQuest, secondQuest in
                 firstQuest.scheduledDate < secondQuest.scheduledDate
-            }  // nearest first
+            }
     }
 
-    // completed = RSVPed quests where the date has already passed
-    // source: rsvpedQuests filtered by scheduledDate vs today
+    /// Quest yang sudah lewat — tanggal < hari ini.
+    /// Diurutkan: yang paling baru lewat muncul paling atas.
     private var completedQuests: [ScheduledQuest] {
         rsvpedQuests
             .filter { questItem in
@@ -45,7 +65,7 @@ struct HistoryView: View {
             }
             .sorted { firstQuest, secondQuest in
                 firstQuest.scheduledDate > secondQuest.scheduledDate
-            }  // most recent first
+            }
     }
 
     // MARK: - Body
@@ -53,7 +73,7 @@ struct HistoryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
 
-                // MARK: Upcoming Section
+                // MARK: Upcoming Section (Quest yang Akan Datang)
                 Text("Upcoming")
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -63,18 +83,18 @@ struct HistoryView: View {
                     .padding(.bottom, 8)
 
                 if upcomingQuests.isEmpty {
-                    // shown when user hasn't RSVPed to any future quest
+                    // Pesan kosong jika belum ada quest upcoming yang di-RSVP
                     emptyState(message: "No upcoming quests. Go RSVP to something!")
                 } else {
                     ForEach(upcomingQuests) { questItem in
-                        // reuses QuestRow from OnScheduleView
-                        // isRSVPed is always true here since its filtered alrd
+                        // Menggunakan QuestRow yang sama dengan OnScheduleView (reuse komponen)
+                        // isRSVPed selalu true karena sudah difilter hanya quest yang di-RSVP
                         QuestRow(quest: questItem, isRSVPed: true)
                         Divider().padding(.horizontal)
                     }
                 }
 
-                // MARK: Completed Section
+                // MARK: Completed Section (Quest yang Sudah Lewat)
                 Text("Completed")
                     .font(.subheadline)
                     .fontWeight(.semibold)
@@ -84,13 +104,14 @@ struct HistoryView: View {
                     .padding(.bottom, 8)
 
                 if completedQuests.isEmpty {
-                    // shown when no past quests have been RSVPed to
+                    // Pesan kosong jika belum ada quest completed
                     emptyState(message: "No completed quests yet.")
                 } else {
                     ForEach(completedQuests) { questItem in
-                        // same QuestRow reuse, completed ones shown slightly dimmed
+                        // Quest yang sudah lewat ditampilkan dengan opacity 0.5 (samar)
+                        // sebagai petunjuk visual bahwa quest ini sudah selesai
                         QuestRow(quest: questItem, isRSVPed: true)
-                            .opacity(0.5)  // visual hint that these are in the past
+                            .opacity(0.5)
                         Divider().padding(.horizontal)
                     }
                 }
@@ -100,8 +121,9 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: - Empty State
-    // reusable helper, shown when either upcoming or completed list is empty
+    // MARK: - emptyState() — Pesan Kosong (Reusable)
+    /// Komponen helper yang menampilkan pesan saat list kosong.
+    /// Digunakan di section Upcoming dan Completed.
     private func emptyState(message: String) -> some View {
         Text(message)
             .font(.caption)
@@ -115,7 +137,7 @@ struct HistoryView: View {
 #Preview {
     HistoryView(
         questsData: SampleData.scheduledQuests,
-        // simulating that the user RSVPed to index [0] and [1]
+        // Simulasi: user sudah RSVP ke quest index [0] dan [1]
         rsvpedQuestIDs: [
             SampleData.scheduledQuests[0].id,
             SampleData.scheduledQuests[1].id
